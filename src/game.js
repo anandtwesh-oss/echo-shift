@@ -109,18 +109,21 @@ export class Game {
   // ── Lifecycle ─────────────────────────────────────────────────────────
 
   start() {
+    console.log('[ECHO-GAME] 3D render & physics loop starting...')
     this._lastTime = performance.now()
     this._loop(this._lastTime)
   }
 
   stop() {
+    console.log('[ECHO-GAME] Stopping game instance...')
     if (this._raf) cancelAnimationFrame(this._raf)
     this._raf = null
     this.player.dispose()
     this.ghost.dispose()
     this.network.leave()
     window.removeEventListener('resize', this._boundResize)
-    if (this.renderer) this.renderer.dispose()
+    // Note: Do not call renderer.dispose() here as it permanently invalidates
+    // the WebGL context on the shared <canvas id="canvas"> element.
   }
 
   // ── Main loop ─────────────────────────────────────────────────────────

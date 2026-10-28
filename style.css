@@ -283,6 +283,16 @@ html, body {
   letter-spacing: 0.08em;
 }
 
+.waiting-diag {
+  font-size: 0.7rem;
+  color: #778899;
+  letter-spacing: 0.05em;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 #waiting-hint { font-size: 0.78rem; color: #667; max-width: 380px; line-height: 1.6; }
 
 /* ── In-game HUD ─────────────────────────────────────────────────────── */

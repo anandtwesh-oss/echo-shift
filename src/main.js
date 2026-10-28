@@ -118,15 +118,19 @@ async function startFlow(role, roomId) {
   currentRoom = roomId
 
   const oppositeRole = role === 'hero' ? 'DEVIL' : 'HERO'
+  console.log(`[ECHO-FLOW] Starting game flow for role="${role}", room="${roomId}"`)
 
   // Setup waiting screen UI
   waitingCode.textContent  = roomId
   waitingTitle.textContent = 'Waiting for opponent…'
   const badgeEl = document.getElementById('waiting-status-badge')
   if (badgeEl) {
-    badgeEl.textContent = '● LOBBY READY · AWAITING OPPONENT'
+    badgeEl.textContent = `● LOBBY READY · AWAITING ${oppositeRole}`
     badgeEl.className = 'hud-status-badge badge-connected'
   }
+
+  const diagEl = document.getElementById('waiting-diag')
+  if (diagEl) diagEl.textContent = 'Signaling: Connecting to trackers…'
 
   waitingHint.innerHTML =
     `Room: <strong>${roomId}</strong> · Playing as <strong>${role.toUpperCase()}</strong>.<br/>` +
@@ -143,6 +147,7 @@ async function startFlow(role, roomId) {
 
   // Clean up any stale game
   if (activeGame) {
+    console.log('[ECHO-FLOW] Cleaning up previous active game instance')
     activeGame.stop()
     activeGame = null
   }
@@ -154,14 +159,31 @@ async function startFlow(role, roomId) {
   let waitSeconds = 0
   let timerInterval = setInterval(() => {
     waitSeconds++
-    if (timerEl) {
-      timerEl.textContent = `Waiting for ${waitSeconds}s…`
-      if (waitSeconds === 40) {
-        waitingHint.innerHTML =
-          `Room: <strong>${roomId}</strong> · Playing as <strong>${role.toUpperCase()}</strong>.<br/>` +
-          `Still waiting? Ensure Player 2 opens the game, enters room <strong>${roomId}</strong>, and picks <strong>${oppositeRole}</strong>.<br/>` +
-          `<span style="color: #00e5ff;">Tip:</span> You can use "Copy Link" to send them a direct link!`
+    if (timerEl) timerEl.textContent = `Waiting for ${waitSeconds}s…`
+
+    // Update live tracker diagnostics
+    if (activeGame && activeGame.network && diagEl) {
+      const stats = activeGame.network.getTrackerStats()
+      if (stats.openCount > 0) {
+        diagEl.textContent = `Signaling: ${stats.openCount}/${stats.totalCount} Trackers Connected · Awaiting ${oppositeRole}`
+        if (badgeEl && !activeGame.network.hasPeer) {
+          badgeEl.textContent = `● LOBBY READY · AWAITING ${oppositeRole}`
+          badgeEl.className = 'hud-status-badge badge-connected'
+        }
+      } else {
+        diagEl.textContent = `Signaling: Connecting to trackers (0/${stats.totalCount})…`
+        if (badgeEl && !activeGame.network.hasPeer) {
+          badgeEl.textContent = '● CONNECTING TO MULTIVERSE TRACKERS…'
+          badgeEl.className = 'hud-status-badge badge-disconnected'
+        }
       }
+    }
+
+    if (waitSeconds === 40) {
+      waitingHint.innerHTML =
+        `Room: <strong>${roomId}</strong> · Playing as <strong>${role.toUpperCase()}</strong>.<br/>` +
+        `Still waiting? Ensure Player 2 opens the game, enters room <strong>${roomId}</strong>, and picks <strong>${oppositeRole}</strong>.<br/>` +
+        `<span style="color: #00e5ff;">Tip:</span> You can use "Copy Link" to send them a direct link!`
     }
   }, 1000)
 
@@ -173,6 +195,7 @@ async function startFlow(role, roomId) {
   }
 
   cancelConnection = () => {
+    console.log('[ECHO-FLOW] Connection cancelled by user')
     isCancelled = true
     clearWaitTimer()
     if (activeGame) {
@@ -183,11 +206,22 @@ async function startFlow(role, roomId) {
   }
 
   // Set up new game instance (joins Trystero WebTorrent room)
-  activeGame = new Game(role, roomId, onGameEnd)
+  try {
+    activeGame = new Game(role, roomId, onGameEnd)
+  } catch (err) {
+    console.error('[ECHO-FLOW] Fatal error creating Game instance:', err)
+    clearWaitTimer()
+    waitingTitle.textContent = 'Failed to Initialize Game'
+    waitingHint.textContent = err.message
+    isFlowActive = false
+    return
+  }
 
   // Wait for peer to connect with accurate state feedback
+  let connectedPeerId = null
   try {
-    await waitForPeer(activeGame, () => isCancelled, (state) => {
+    console.log('[ECHO-FLOW] Awaiting peer connection...')
+    await waitForPeer(activeGame, () => isCancelled, (state, peerId) => {
       if (state === 'ready') {
         waitingTitle.textContent = 'Waiting for opponent…'
         if (badgeEl) {
@@ -201,10 +235,15 @@ async function startFlow(role, roomId) {
           badgeEl.className = 'hud-status-badge badge-connected'
         }
       } else if (state === 'connected') {
+        connectedPeerId = peerId
+        console.log(`[ECHO-FLOW] Peer handshake successful! Peer ID: "${peerId}"`)
         waitingTitle.textContent = 'Opponent connected! Starting match…'
         if (badgeEl) {
           badgeEl.textContent = '● PEER CONNECTED'
           badgeEl.className = 'hud-status-badge badge-connected'
+        }
+        if (diagEl) {
+          diagEl.textContent = `Signaling: Connected · Peer: ${peerId ? peerId.slice(0, 8) + '...' : 'OK'}`
         }
       }
     })
@@ -212,6 +251,7 @@ async function startFlow(role, roomId) {
     clearWaitTimer()
     if (isCancelled) return
 
+    console.warn('[ECHO-FLOW] waitForPeer error:', err)
     waitingTitle.textContent = 'Connection Cancelled'
     waitingSpinner.classList.add('hidden')
     isFlowActive = false
@@ -223,23 +263,33 @@ async function startFlow(role, roomId) {
   cancelConnection = null
 
   // Opponent successfully connected!
+  console.log('[ECHO-FLOW] Opponent confirmed connected. Executing transition to countdown...')
   waitingTitle.textContent = 'Opponent connected! Starting match…'
   waitingSpinner.classList.add('hidden')
   if (badgeEl) {
     badgeEl.textContent = '● PEER CONNECTED'
     badgeEl.className = 'hud-status-badge badge-connected'
   }
-  await new Promise(r => setTimeout(r, 450))
+  await new Promise(r => setTimeout(r, 400))
 
   if (isCancelled) return
 
-  // Update HUD and start countdown
-  hudRoomCode.textContent = roomId
-  showScreen('hud')
-  await runCountdown(['3', '2', '1', 'GO!'], 800)
+  try {
+    // Update HUD and start countdown
+    hudRoomCode.textContent = roomId
+    console.log('[ECHO-FLOW] Showing HUD...')
+    showScreen('hud')
 
-  // Start 3D gameplay loop
-  activeGame.start()
+    console.log('[ECHO-FLOW] Running countdown overlay...')
+    await runCountdown(['3', '2', '1', 'GO!'], 800)
+
+    // Start 3D gameplay loop
+    console.log('[ECHO-FLOW] Countdown finished. Invoking activeGame.start()...')
+    activeGame.start()
+    console.log('[ECHO-FLOW] activeGame.start() completed. Live match active!')
+  } catch (transitionErr) {
+    console.error('[ECHO-FLOW] Error during countdown/gameplay transition:', transitionErr)
+  }
 }
 
 // ── Wait For Peer Helper ──────────────────────────────────────────────
@@ -247,16 +297,20 @@ function waitForPeer(game, isCancelled, onStateChange) {
   return new Promise((resolve) => {
     // If peer is already connected, notify and resolve immediately
     if (game.network.hasPeer) {
-      if (onStateChange) onStateChange('connected')
+      const existingPeers = Object.keys(game.network.getPeers())
+      const pId = existingPeers[0] || 'remote'
+      console.log(`[ECHO-FLOW] Peer already present at waitForPeer call: "${pId}"`)
+      if (onStateChange) onStateChange('connected', pId)
       resolve()
       return
     }
 
     if (onStateChange) onStateChange('ready')
 
-    const peerHandler = () => {
+    const peerHandler = (peerId) => {
+      console.log(`[ECHO-FLOW] peerHandler invoked with peerId: "${peerId}"`)
       game.network.removePeerJoinListener(peerHandler)
-      if (onStateChange) onStateChange('connected')
+      if (onStateChange) onStateChange('connected', peerId)
       if (!isCancelled()) {
         resolve()
       }
