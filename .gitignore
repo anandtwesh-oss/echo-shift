@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Local build output (built in CI for Pages)
+dist/
+
+# OS and logs
+.DS_Store
+Thumbs.db
+*.log
+.gemini/
+

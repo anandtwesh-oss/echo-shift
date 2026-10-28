@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ECHO SHIFT: HERO vs DEVIL</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===================== TITLE SCREEN ===================== -->
+  <div id="title-screen">
+    <div id="title-screen-inner">
+      <h1 class="game-title">ECHO SHIFT</h1>
+      <h2 class="game-subtitle">HERO <span class="vs">vs</span> DEVIL</h2>
+
+      <p class="story">
+        Two parallel universes. One shared fate.<br/>
+        The <span class="hero-text">Hero</span> guards Universe A — a world of cyan light and order.<br/>
+        The <span class="devil-text">Devil</span> corrupts Universe B — a realm of crimson shadow.<br/>
+        Both bleed into each other. Only one can survive the <em>Echo Shift</em>.
+      </p>
+
+      <div class="controls-grid">
+        <div class="ctrl-block hero-block">
+          <div class="ctrl-title">⚡ HERO / PLAYER 1</div>
+          <div class="ctrl-row"><kbd>A</kbd><kbd>D</kbd> Move</div>
+          <div class="ctrl-row"><kbd>W</kbd> Jump</div>
+          <div class="ctrl-row"><kbd>Space</kbd> Shoot</div>
+        </div>
+        <div class="ctrl-block devil-block">
+          <div class="ctrl-title">💀 DEVIL / PLAYER 2</div>
+          <div class="ctrl-row"><kbd>◀</kbd><kbd>▶</kbd> Move</div>
+          <div class="ctrl-row"><kbd>▲</kbd> Jump</div>
+          <div class="ctrl-row"><kbd>Enter</kbd> Shoot</div>
+        </div>
+      </div>
+
+      <button id="start-btn">▶ START GAME</button>
+    </div>
+  </div>
+
+  <!-- ===================== GAME SCREEN ===================== -->
+  <div id="game-screen" class="hidden">
+    <div id="canvas-wrapper">
+      <canvas id="game-canvas"></canvas>
+    </div>
+  </div>
+
+  <!-- ===================== COUNTDOWN OVERLAY ===================== -->
+  <div id="countdown-overlay" class="hidden">
+    <span id="countdown-text"></span>
+  </div>
+
+  <script type="module" src="game.js"></script>
+</body>
+</html>
+

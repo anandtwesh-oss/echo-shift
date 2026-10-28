@@ -1,0 +1,20 @@
+{
+  "name": "echo-shift-3d",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "cannon-es": "^0.20.0",
+    "three": "^0.169.0",
+    "trystero": "^0.21.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}
+

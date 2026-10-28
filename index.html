@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ECHO SHIFT: HERO vs DEVIL</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+  <!-- 3D canvas rendered by Three.js (behind all UI) -->
+  <canvas id="canvas"></canvas>
+
+  <!-- UI layer — all screens live here -->
+  <div id="ui-layer">
+
+    <!-- ══════ TITLE SCREEN ══════ -->
+    <div id="screen-title" class="screen active">
+      <div class="screen-inner">
+        <h1 class="game-title">ECHO SHIFT</h1>
+        <h2 class="game-subtitle">HERO <span class="vs">vs</span> DEVIL</h2>
+        <p class="story">
+          Two parallel universes hang on the edge of collapse.<br/>
+          The <span class="t-hero">Hero</span> guards Universe A.
+          The <span class="t-devil">Devil</span> corrupts Universe B.<br/>
+          Capture the dimensional portal faster — or be erased by the <em>Echo Shift</em>.
+        </p>
+
+        <div class="room-row">
+          <label for="room-input">Room Code</label>
+          <input id="room-input" type="text" maxlength="8"
+                 placeholder="e.g. ECHO" autocomplete="off" spellcheck="false" />
+        </div>
+
+        <p class="room-hint">
+          Agree on a code with your opponent. Both enter the same code.
+        </p>
+
+        <div class="role-row">
+          <button id="btn-hero"  class="btn btn-hero-style">⚡ Play as HERO</button>
+          <button id="btn-devil" class="btn btn-devil-style">💀 Play as DEVIL</button>
+        </div>
+
+        <div class="controls-hint">
+          <span>WASD · Move</span>
+          <span>Space · Jump</span>
+          <span>Mouse · Camera (click canvas to lock)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ WAITING SCREEN ══════ -->
+    <div id="screen-waiting" class="screen">
+      <div class="screen-inner">
+        <div id="waiting-spinner" class="spinner"></div>
+        <h2 id="waiting-title">Connecting…</h2>
+        <div class="room-badge">
+          Room: <strong id="waiting-code">—</strong>
+        </div>
+        <p id="waiting-hint">Share this code with the other player so they can join.</p>
+        <button id="btn-cancel" class="btn btn-cancel">← Back</button>
+      </div>
+    </div>
+
+    <!-- ══════ IN-GAME HUD ══════ -->
+    <div id="hud" class="screen">
+      <div id="hud-top">
+        <div id="hud-score">
+          <span id="score-label-hero" class="score-label t-hero">HERO</span>
+          <span id="score-pips-hero"  class="score-pips t-hero">□□□</span>
+          <span class="score-sep">vs</span>
+          <span id="score-pips-devil" class="score-pips t-devil">□□□</span>
+          <span id="score-label-devil" class="score-label t-devil">DEVIL</span>
+        </div>
+        <div id="hud-room">
+          Room: <strong id="hud-room-code">—</strong>
+          <span id="hud-peer-status" class="hud-status-badge badge-connected">● LIVE</span>
+        </div>
+      </div>
+      <div id="hud-bottom">
+        <div id="hud-status">Walk into the portal to capture it!</div>
+        <div id="hud-controls">Click canvas to lock mouse · Esc to unlock</div>
+      </div>
+    </div>
+
+    <!-- ══════ COUNTDOWN ══════ -->
+    <div id="countdown" class="screen">
+      <span id="countdown-text"></span>
+    </div>
+
+    <!-- ══════ FLASH (portal capture effect) ══════ -->
+    <div id="flash"></div>
+
+    <!-- ══════ WIN / LOSE ══════ -->
+    <div id="screen-result" class="screen">
+      <div class="screen-inner">
+        <h2 id="result-title">—</h2>
+        <p  id="result-sub">—</p>
+        <button id="btn-again" class="btn btn-hero-style">Play Again</button>
+      </div>
+    </div>
+
+  </div><!-- /ui-layer -->
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
