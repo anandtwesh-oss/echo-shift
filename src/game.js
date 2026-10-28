@@ -31,7 +31,9 @@ export function getSharedRenderer() {
     const canvas = document.getElementById('canvas')
     console.log('[ECHO-GAME] Creating shared WebGLRenderer...')
     _sharedRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' })
-    console.log('[ECHO-GAME] WebGLRenderer created successfully.')
+    _sharedRenderer.setSize(window.innerWidth, window.innerHeight)
+    _sharedRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    console.log(`[ECHO-GAME] WebGLRenderer created successfully. Viewport: ${window.innerWidth}x${window.innerHeight}, PR: ${_sharedRenderer.getPixelRatio()}`)
   }
   return _sharedRenderer
 }
@@ -129,6 +131,14 @@ export class Game {
     // ── Resize ────────────────────────────────────────────────────
     this._boundResize = this._onResize.bind(this)
     window.addEventListener('resize', this._boundResize)
+
+    // ── Render initial frame so 3D world is immediately visible ───
+    try {
+      this.renderer.render(this.scene, this.camera)
+      console.log(`[ECHO-GAME] Initial world frame rendered (${role.toUpperCase()}). Canvas: ${this.renderer.domElement.width}x${this.renderer.domElement.height}`)
+    } catch (renderErr) {
+      console.error('[ECHO-GAME] Error rendering initial frame:', renderErr)
+    }
   }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────
@@ -163,43 +173,59 @@ export class Game {
 
     if (this._paused || this._gameOver) {
       // Still render so the scene doesn't freeze
-      this.renderer.render(this.scene, this.camera)
+      try {
+        this.renderer.render(this.scene, this.camera)
+      } catch (renderErr) {
+        console.error('[ECHO-GAME] Error during paused render:', renderErr)
+      }
       return
     }
 
-    // ── Physics step ────────────────────────────────────────────
-    this.physics.fixedStep(1 / 60, dt)
+    try {
+      // ── Physics step ────────────────────────────────────────────
+      this.physics.fixedStep(1 / 60, dt)
 
-    // ── Player update (input + camera) ───────────────────────────
-    this.player.update(dt)
+      // ── Player update (input + camera) ───────────────────────────
+      this.player.update(dt)
 
-    // ── Ghost interpolation ──────────────────────────────────────
-    this.ghost.update(dt)
+      // ── Ghost interpolation ──────────────────────────────────────
+      this.ghost.update(dt)
 
-    // ── Animate dynamic world systems (portal, particles, obelisks, clouds) ─
-    animateWorld(this.worldData, dt, this._elapsed)
+      // ── Animate dynamic world systems (portal, particles, obelisks, clouds) ─
+      animateWorld(this.worldData, dt, this._elapsed)
 
-    // ── Portal capture check ─────────────────────────────────────
-    this._portalCooldown = Math.max(0, this._portalCooldown - dt)
-    this._checkPortalCapture()
+      // ── Portal capture check ─────────────────────────────────────
+      this._portalCooldown = Math.max(0, this._portalCooldown - dt)
+      this._checkPortalCapture()
 
-    // ── Broadcast position at ~20 Hz ────────────────────────────
-    this._posTimer += dt
-    if (this._posTimer >= 0.05) {
-      this._posTimer = 0
-      this.network.sendPosition(this.player.getNetworkData())
-    }
+      // ── Broadcast position at ~20 Hz ────────────────────────────
+      this._posTimer += dt
+      if (this._posTimer >= 0.05) {
+        this._posTimer = 0
+        this.network.sendPosition(this.player.getNetworkData())
+      }
 
-    // ── Camera shake impulse (e.g. portal capture) ───────────────
-    if (this._camShake > 0) {
-      this._camShake -= dt
-      const mag = this._camShake * 0.16
-      this.camera.position.x += (Math.random() - 0.5) * mag
-      this.camera.position.y += (Math.random() - 0.5) * mag
+      // ── Camera shake impulse (e.g. portal capture) ───────────────
+      if (this._camShake > 0) {
+        this._camShake -= dt
+        const mag = this._camShake * 0.16
+        this.camera.position.x += (Math.random() - 0.5) * mag
+        this.camera.position.y += (Math.random() - 0.5) * mag
+      }
+    } catch (frameErr) {
+      console.error('[ECHO-GAME] Error during frame update:', frameErr)
     }
 
     // ── Render ───────────────────────────────────────────────────
-    this.renderer.render(this.scene, this.camera)
+    try {
+      this.renderer.render(this.scene, this.camera)
+      if (!this._firstFrameLogged) {
+        this._firstFrameLogged = true
+        console.log(`[ECHO-GAME] Render loop active. First frame drawn successfully (${this.role.toUpperCase()}).`)
+      }
+    } catch (renderErr) {
+      console.error('[ECHO-GAME] Error during renderer.render:', renderErr)
+    }
   }
 
   // ── Portal logic ──────────────────────────────────────────────────────

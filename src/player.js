@@ -195,7 +195,7 @@ export class LocalPlayer {
 
     // ── Articulated procedural animation ─────────────────────────
     animateCharacter(
-      this.charData.parts,
+      this.charData?.parts || this.charData,
       {
         speed: this._speed,
         isGrounded: this.isGrounded,

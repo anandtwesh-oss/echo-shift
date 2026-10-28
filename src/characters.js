@@ -411,6 +411,7 @@ export function buildCharacterModel(role, isGhost = false) {
 export function animateCharacter(parts, animState, dt, time) {
   if (!parts) return
 
+  const p = parts.parts || parts
   const {
     hips,
     spine,
@@ -421,7 +422,9 @@ export function animateCharacter(parts, animState, dt, time) {
     rightArm,
     leftLeg,
     rightLeg,
-  } = parts
+  } = p
+
+  if (!hips || !spine || !chestGroup || !headGroup || !leftArm || !rightArm || !leftLeg || !rightLeg) return
 
   const speed = animState.speed || 0
   const isGrounded = animState.isGrounded !== false

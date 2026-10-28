@@ -176,7 +176,7 @@ export function buildWorld(themeName, physicsWorld) {
     cloudGroup,
     obeliskMeshes,
     platformCrystals,
-    ambientParticles: particles,
+    ambientParticles: particles.mesh,
   }
 }
 
@@ -258,19 +258,22 @@ export function animateWorld(world, dt, elapsed) {
   }
 
   // 5. Rise Ambient Energy Motes
-  if (world.ambientParticles) {
-    const pos = world.ambientParticles.geometry.attributes.position.array
-    const vels = world.ambientParticles.userData.vels
-    const count = pos.length / 3
-    for (let i = 0; i < count; i++) {
-      pos[i * 3 + 1] += vels[i] * dt
-      if (pos[i * 3 + 1] > 22) {
-        pos[i * 3 + 1] = -2
-        pos[i * 3]     = (Math.random() - 0.5) * 28
-        pos[i * 3 + 2] = (Math.random() - 0.5) * 36 - 2
+  const ap = world.ambientParticles?.mesh || world.ambientParticles
+  if (ap && ap.geometry && ap.geometry.attributes && ap.geometry.attributes.position) {
+    const vels = ap.userData?.vels || world.ambientParticles?.userData?.vels
+    if (vels) {
+      const pos = ap.geometry.attributes.position.array
+      const count = pos.length / 3
+      for (let i = 0; i < count; i++) {
+        pos[i * 3 + 1] += vels[i] * dt
+        if (pos[i * 3 + 1] > 22) {
+          pos[i * 3 + 1] = -2
+          pos[i * 3]     = (Math.random() - 0.5) * 28
+          pos[i * 3 + 2] = (Math.random() - 0.5) * 36 - 2
+        }
       }
+      ap.geometry.attributes.position.needsUpdate = true
     }
-    world.ambientParticles.geometry.attributes.position.needsUpdate = true
   }
 
   // 6. Slow celestial sky drift
