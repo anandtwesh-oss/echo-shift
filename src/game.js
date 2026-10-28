@@ -20,6 +20,22 @@ import { LocalPlayer } from './player.js'
 import { RemoteGhost  } from './ghost.js'
 import { Network      } from './network.js'
 
+// ── Shared renderer (created once, reused across Game instances) ─────
+// A canvas can only hold one WebGL context at a time. We create the
+// renderer once and pass it into each Game constructor to avoid a
+// "Could not initialize WebGL" crash on retry / play-again flows.
+let _sharedRenderer = null
+
+export function getSharedRenderer() {
+  if (!_sharedRenderer) {
+    const canvas = document.getElementById('canvas')
+    console.log('[ECHO-GAME] Creating shared WebGLRenderer...')
+    _sharedRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' })
+    console.log('[ECHO-GAME] WebGLRenderer created successfully.')
+  }
+  return _sharedRenderer
+}
+
 export class Game {
   /**
    * @param {'hero'|'devil'} role        — this player's role
@@ -30,9 +46,9 @@ export class Game {
     this.role      = role
     this.onGameEnd = onGameEnd
 
-    // ── Renderer ──────────────────────────────────────────────────
-    const canvas = document.getElementById('canvas')
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
+    // ── Renderer (shared — never double-created) ───────────────────
+    console.log('[ECHO-GAME] Acquiring shared renderer...')
+    this.renderer = getSharedRenderer()
     this.renderer.setSize(window.innerWidth, window.innerHeight)
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     this.renderer.shadowMap.enabled = true
@@ -46,14 +62,18 @@ export class Game {
     )
 
     // ── Physics world ─────────────────────────────────────────────
+    console.log('[ECHO-GAME] Initializing physics world...')
     this.physics = new CANNON.World()
     this.physics.gravity.set(0, -22, 0)
     this.physics.broadphase = new CANNON.SAPBroadphase(this.physics)
     this.physics.allowSleep = false
+    console.log('[ECHO-GAME] Physics world ready.')
 
     // ── Build scene ───────────────────────────────────────────────
     const ghostRole = role === 'hero' ? 'devil' : 'hero'
+    console.log('[ECHO-GAME] Building 3D world scene...')
     const worldData = buildWorld(role, this.physics)
+    console.log('[ECHO-GAME] World scene built.')
     this.worldData     = worldData
 
     this.scene         = worldData.scene
@@ -67,8 +87,11 @@ export class Game {
     this._camShake     = 0
 
     // ── Player & Ghost ────────────────────────────────────────────
+    console.log('[ECHO-GAME] Creating LocalPlayer...')
     this.player = new LocalPlayer(role, this.physics, this.camera, this.scene, this.playerStart)
+    console.log('[ECHO-GAME] Creating RemoteGhost...')
     this.ghost  = new RemoteGhost(ghostRole, this.scene)
+    console.log('[ECHO-GAME] Player and Ghost ready.')
 
     // ── Score ─────────────────────────────────────────────────────
     this.myScore    = 0
@@ -78,7 +101,9 @@ export class Game {
     this._paused         = false
 
     // ── Network ───────────────────────────────────────────────────
+    console.log('[ECHO-GAME] Initializing Network (Trystero room join)...')
     this.network = new Network(roomId)
+    console.log('[ECHO-GAME] Network initialized.')
 
     this.network.onPosition  = (data) => this.ghost.updateTarget(data)
     this.network.onCapture   = ()     => this._onPeerCapture()

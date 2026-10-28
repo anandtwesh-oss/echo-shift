@@ -12,7 +12,7 @@
      - Inactive screens are hidden so keyboard events do not trigger hidden buttons
    ===================================================================== */
 
-import { Game } from './game.js'
+import { Game, getSharedRenderer } from './game.js'
 
 // ── Application State ─────────────────────────────────────────────────
 let activeGame       = null
@@ -207,12 +207,17 @@ async function startFlow(role, roomId) {
 
   // Set up new game instance (joins Trystero WebTorrent room)
   try {
+    console.log(`[ECHO-FLOW] Creating Game instance for role="${role}", room="${roomId}"...`)
     activeGame = new Game(role, roomId, onGameEnd)
+    console.log('[ECHO-FLOW] Game instance created successfully.')
   } catch (err) {
     console.error('[ECHO-FLOW] Fatal error creating Game instance:', err)
     clearWaitTimer()
-    waitingTitle.textContent = 'Failed to Initialize Game'
-    waitingHint.textContent = err.message
+    waitingSpinner.classList.add('hidden')
+    waitingTitle.textContent = 'Failed to Initialize'
+    waitingHint.innerHTML = `<span style="color:#ff5252;"><strong>Error:</strong> ${err.message || String(err)}</span><br/><small>Check browser console (F12) for details. Try refreshing or a different browser.</small>`
+    if (diagEl) diagEl.textContent = `Init error: ${err.constructor?.name || 'Error'}`
+    btnRetry.classList.remove('hidden')
     isFlowActive = false
     return
   }
@@ -449,6 +454,22 @@ function setupEventListeners() {
 
 // ── Application Boot ──────────────────────────────────────────────────
 function init() {
+  // Eagerly initialize the shared WebGL renderer at boot so any WebGL
+  // context failure is surfaced immediately and clearly, not buried
+  // inside the Game constructor during a connection attempt.
+  try {
+    getSharedRenderer()
+    console.log('[ECHO-FLOW] WebGL context ready at boot.')
+  } catch (err) {
+    console.error('[ECHO-FLOW] CRITICAL: WebGL initialization failed at boot:', err)
+    // Show a user-facing error on the title screen
+    const storyEl = document.querySelector('#screen-title .story')
+    if (storyEl) {
+      storyEl.innerHTML = `<span style="color:#ff5252;font-weight:bold;">⚠ WebGL Error: ${err.message || 'Could not initialize 3D renderer.'}<br>Please try a different browser or enable hardware acceleration.</span>`
+    }
+    return
+  }
+
   // Pre-fill room code from URL parameter if present (?room=ECHO)
   const urlParams = new URLSearchParams(window.location.search)
   const roomParam = urlParams.get('room')
