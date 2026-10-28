@@ -53,12 +53,21 @@
     <div id="screen-waiting" class="screen">
       <div class="screen-inner">
         <div id="waiting-spinner" class="spinner"></div>
-        <h2 id="waiting-title">Connecting…</h2>
-        <div class="room-badge">
-          Room: <strong id="waiting-code">—</strong>
+        <h2 id="waiting-title">Waiting for opponent…</h2>
+        <div class="room-badge-wrap">
+          <div class="room-badge">
+            Room: <strong id="waiting-code">—</strong>
+          </div>
+          <button id="btn-waiting-copy" class="btn-copy" title="Copy room code">📋 Copy Code</button>
+          <button id="btn-waiting-copy-link" class="btn-copy" title="Copy direct invite link">🔗 Copy Link</button>
         </div>
+        <div id="waiting-status-badge" class="hud-status-badge badge-connected">● LOBBY READY · WAITING FOR OPPONENT</div>
         <p id="waiting-hint">Share this code with the other player so they can join.</p>
-        <button id="btn-cancel" class="btn btn-cancel">← Back</button>
+        <p id="waiting-timer" class="waiting-timer">Waiting for 0s…</p>
+        <div class="waiting-actions">
+          <button id="btn-retry" class="btn btn-hero-style hidden">🔄 Retry Connection</button>
+          <button id="btn-cancel" class="btn btn-cancel">← Back</button>
+        </div>
       </div>
     </div>
 
@@ -67,19 +76,20 @@
       <div id="hud-top">
         <div id="hud-score">
           <span id="score-label-hero" class="score-label t-hero">HERO</span>
-          <span id="score-pips-hero"  class="score-pips t-hero">□□□</span>
+          <span id="score-pips-hero"  class="score-pips t-hero">◇◇◇</span>
           <span class="score-sep">vs</span>
-          <span id="score-pips-devil" class="score-pips t-devil">□□□</span>
+          <span id="score-pips-devil" class="score-pips t-devil">◇◇◇</span>
           <span id="score-label-devil" class="score-label t-devil">DEVIL</span>
         </div>
         <div id="hud-room">
-          Room: <strong id="hud-room-code">—</strong>
+          <span>Room: <strong id="hud-room-code">—</strong></span>
+          <button id="btn-hud-copy" class="btn-copy" title="Copy code">📋</button>
           <span id="hud-peer-status" class="hud-status-badge badge-connected">● LIVE</span>
         </div>
       </div>
       <div id="hud-bottom">
         <div id="hud-status">Walk into the portal to capture it!</div>
-        <div id="hud-controls">Click canvas to lock mouse · Esc to unlock</div>
+        <div id="hud-controls"><kbd>WASD</kbd> Move · <kbd>Space</kbd> Jump · <kbd>Mouse</kbd> Look · <kbd>Esc</kbd> Unlock</div>
       </div>
     </div>
 

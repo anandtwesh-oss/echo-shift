@@ -15,7 +15,7 @@
 import * as THREE from 'three'
 import * as CANNON from 'cannon-es'
 
-import { buildWorld, animatePortal, PORTAL_CAPTURE_RADIUS, PORTAL_COOLDOWN_SEC } from './world.js'
+import { buildWorld, animateWorld, PORTAL_CAPTURE_RADIUS, PORTAL_COOLDOWN_SEC } from './world.js'
 import { LocalPlayer } from './player.js'
 import { RemoteGhost  } from './ghost.js'
 import { Network      } from './network.js'
@@ -54,6 +54,7 @@ export class Game {
     // ── Build scene ───────────────────────────────────────────────
     const ghostRole = role === 'hero' ? 'devil' : 'hero'
     const worldData = buildWorld(role, this.physics)
+    this.worldData     = worldData
 
     this.scene         = worldData.scene
     this.portalMesh    = worldData.portalMesh
@@ -61,6 +62,9 @@ export class Game {
     this.discMesh      = worldData.discMesh
     this.portalPos     = worldData.portalPosition   // { x, y, z }
     this.playerStart   = worldData.playerStart       // THREE.Vector3
+
+    // ── Camera shake fx ───────────────────────────────────────────
+    this._camShake     = 0
 
     // ── Player & Ghost ────────────────────────────────────────────
     this.player = new LocalPlayer(role, this.physics, this.camera, this.scene, this.playerStart)
@@ -116,6 +120,7 @@ export class Game {
     this.ghost.dispose()
     this.network.leave()
     window.removeEventListener('resize', this._boundResize)
+    if (this.renderer) this.renderer.dispose()
   }
 
   // ── Main loop ─────────────────────────────────────────────────────────
@@ -143,8 +148,8 @@ export class Game {
     // ── Ghost interpolation ──────────────────────────────────────
     this.ghost.update(dt)
 
-    // ── Portal animation ─────────────────────────────────────────
-    animatePortal(this.portalMesh, this.outerRing, this.discMesh, this._elapsed)
+    // ── Animate dynamic world systems (portal, particles, obelisks, clouds) ─
+    animateWorld(this.worldData, dt, this._elapsed)
 
     // ── Portal capture check ─────────────────────────────────────
     this._portalCooldown = Math.max(0, this._portalCooldown - dt)
@@ -155,6 +160,14 @@ export class Game {
     if (this._posTimer >= 0.05) {
       this._posTimer = 0
       this.network.sendPosition(this.player.getNetworkData())
+    }
+
+    // ── Camera shake impulse (e.g. portal capture) ───────────────
+    if (this._camShake > 0) {
+      this._camShake -= dt
+      const mag = this._camShake * 0.16
+      this.camera.position.x += (Math.random() - 0.5) * mag
+      this.camera.position.y += (Math.random() - 0.5) * mag
     }
 
     // ── Render ───────────────────────────────────────────────────
@@ -219,11 +232,20 @@ export class Game {
     void flash.offsetWidth  // reflow to restart animation
     flash.classList.add('active')
 
-    // Pulse portal emissive intensity
-    this.portalMesh.material.emissiveIntensity = 8
+    // Camera shake impulse
+    this._camShake = 0.38
+
+    // Pulse portal emissive intensity & point light
+    if (this.portalMesh) this.portalMesh.material.emissiveIntensity = 8
+    if (this.worldData && this.worldData.portalLight) {
+      this.worldData.portalLight.intensity = 10
+    }
     setTimeout(() => {
-      if (this.portalMesh) this.portalMesh.material.emissiveIntensity = 2.5
-    }, 350)
+      if (this.portalMesh) this.portalMesh.material.emissiveIntensity = 3.0
+      if (this.worldData && this.worldData.portalLight) {
+        this.worldData.portalLight.intensity = 2.5
+      }
+    }, 380)
   }
 
   // ── Win / Lose ────────────────────────────────────────────────────────
@@ -258,7 +280,7 @@ export class Game {
     const heroScore  = this.role === 'hero' ? this.myScore    : this.theirScore
     const devilScore = this.role === 'devil' ? this.myScore   : this.theirScore
 
-    const toPips = (n) => '■'.repeat(n) + '□'.repeat(Math.max(0, 3 - n))
+    const toPips = (n) => '◆'.repeat(n) + '◇'.repeat(Math.max(0, 3 - n))
     document.getElementById('score-pips-hero').textContent  = toPips(heroScore)
     document.getElementById('score-pips-devil').textContent = toPips(devilScore)
   }
