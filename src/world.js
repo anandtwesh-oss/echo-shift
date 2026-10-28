@@ -815,7 +815,7 @@ function _buildDimensionalPortal(themeName, scene) {
   // 7. Inward-Swirling Singularity Particles
   const vortexPCount = 70
   const vPGeo = new THREE.BufferGeometry()
-  const vPPos = new Float32Array(vPCount * 3)
+  const vPPos = new Float32Array(vortexPCount * 3)
   const vPData = []
 
   for (let i = 0; i < vortexPCount; i++) {
